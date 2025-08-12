@@ -39,6 +39,9 @@
 /** Main program entry point. This routine configures the hardware required by the application, then
  *  enters a loop to run the application tasks in sequence.
  */
+
+USB_JoystickReport_Data_t ReportData = {.LX = 128, .LY = 128, .RX = 128, .RY = 128, .HAT = 0x08, .Button = 0};
+
 int main(void)
 {
 	SetupHardware();
@@ -133,298 +136,43 @@ void EVENT_USB_Device_ControlRequest(void)
  *
  *  \return Boolean \c true if the new report differs from the last report, \c false otherwise
  */
-// bool GetNextReport(USB_JoystickReport_Data_t* const ReportData)
-//{
-//	static uint8_t PrevJoyStatus    = 0;
-//	static uint8_t PrevButtonStatus = 0;
-////	uint8_t        JoyStatus_LCL    = Joystick_GetStatus();
-////	uint8_t        ButtonStatus_LCL = Buttons_GetStatus();
-//	bool           InputChanged     = false;
-//
-//	/* Clear the report contents */
-//	memset(ReportData, 0, sizeof(USB_JoystickReport_Data_t));
-//	ReportData->LX = 128;
-//	ReportData->LY = 128;
-//	ReportData->RX = 128;
-//	ReportData->RY = 128;
-//	ReportData->HAT = 0x08;
-//
-//	ReportData->Button = SWITCH_L | SWITCH_R;
-//
-////	if (JoyStatus_LCL & JOY_UP)
-////	  ReportData->Y = -100;
-////	else if (JoyStatus_LCL & JOY_DOWN)
-////	  ReportData->Y =  100;
-////
-////	if (JoyStatus_LCL & JOY_LEFT)
-////	  ReportData->X = -100;
-////	else if (JoyStatus_LCL & JOY_RIGHT)
-////	  ReportData->X =  100;
-////
-////	if (JoyStatus_LCL & JOY_PRESS)
-////	  ReportData->Button |= (1 << 1);
-////
-////	if (ButtonStatus_LCL & BUTTONS_BUTTON1)
-////	  ReportData->Button |= (1 << 0);
-//
-//	/* Check if the new report is different to the previous report */
-//	//InputChanged = (uint8_t)(PrevJoyStatus ^ JoyStatus_LCL) | (uint8_t)(PrevButtonStatus ^ ButtonStatus_LCL);
-//
-//	/* Save the current joystick status for later comparison */
-//	//PrevJoyStatus    = JoyStatus_LCL;
-//	//PrevButtonStatus = ButtonStatus_LCL;
-//
-//	/* Return whether the new report is different to the previous report or not */
-//	return InputChanged;
-//}
-
-typedef struct {
-	Buttons_t button;
-	uint16_t duration;
-} command; 
-
-static const command step[] = {
-	// Setup controller
-						{ NOTHING,  250 },
-	{ TRIGGERS,   5 },	{ NOTHING,  150 },
-	{ TRIGGERS,   5 },	{ NOTHING,  150 },
-	{ A,          5 },	{ NOTHING,  250 },
-
-	// Go into game
-	{ HOME,       5 },	{ NOTHING,  250 },
-	{ A,          5 },	{ NOTHING,  250 },
-
-	// spam A
-	{ A,          5 },	{ NOTHING,  5 },
-	{ A,          5 },	{ NOTHING,  5 },
-	{ A,          5 },	{ NOTHING,  5 },
-	{ A,          5 },	{ NOTHING,  5 },
-	{ A,          5 },	{ NOTHING,  5 },
-	{ A,          5 },	{ NOTHING,  5 },
-	{ A,          5 },	{ NOTHING,  5 },
-	{ A,          5 },	{ NOTHING,  5 },
-	{ A,          5 },	{ NOTHING,  5 },
-	{ A,          5 },	{ NOTHING,  5 },
-	{ A,          5 },	{ NOTHING,  5 },
-	{ A,          5 },	{ NOTHING,  5 },
-	{ A,          5 },	{ NOTHING,  5 },
-	{ A,          5 },	{ NOTHING,  5 },
-	{ A,          5 },	{ NOTHING,  5 },
-	{ A,          5 },	{ NOTHING,  5 },
-	{ A,          5 },	{ NOTHING,  5 },
-	{ A,          5 },	{ NOTHING,  5 },
-	{ A,          5 },	{ NOTHING,  5 },
-	{ A,          5 },	{ NOTHING,  5 },
-	{ A,          5 },	{ NOTHING,  5 },
-	{ A,          5 },	{ NOTHING,  5 },
-	{ A,          5 },	{ NOTHING,  5 },
-	{ A,          5 },	{ NOTHING,  5 },
-	{ A,          5 },	{ NOTHING,  5 },
-	{ A,          5 },	{ NOTHING,  5 },
-	{ A,          5 },	{ NOTHING,  5 },
-	{ A,          5 },	{ NOTHING,  5 },
-	{ A,          5 },	{ NOTHING,  5 },
-	{ A,          5 },	{ NOTHING,  5 },
-	{ A,          5 },	{ NOTHING,  5 },
-	{ A,          5 },	{ NOTHING,  5 },
-	{ A,          5 },	{ NOTHING,  5 }
-
-};
-
-typedef enum
-{
-	SYNC_CONTROLLER,
-	SYNC_POSITION,
-	BREATHE,
-	PROCESS,
-	CLEANUP,
-	DONE
-} State_t;
-State_t state = SYNC_CONTROLLER;
-
-#define ECHOES 2
-int echoes = 0;
-USB_JoystickReport_Data_t last_report;
-
-int report_count = 0;
-int xpos = 0;
-int ypos = 0;
-int bufindex = 0;
-int duration_count = 0;
-int portsval = 0;
-
 bool GetNextReport(USB_JoystickReport_Data_t *const ReportData)
 {
+	static uint8_t PrevJoyStatus = 0;
+	static uint8_t PrevButtonStatus = 0;
+	//	uint8_t        JoyStatus_LCL    = Joystick_GetStatus();
+	//	uint8_t        ButtonStatus_LCL = Buttons_GetStatus();
+	bool InputChanged = true;
 
-	// Prepare an empty report
+	/* Clear the report contents */
 	memset(ReportData, 0, sizeof(USB_JoystickReport_Data_t));
-	ReportData->LX = STICK_CENTER;
-	ReportData->LY = STICK_CENTER;
-	ReportData->RX = STICK_CENTER;
-	ReportData->RY = STICK_CENTER;
-	ReportData->HAT = HAT_CENTER;
+	ReportData->Button |= SWITCH_L | SWITCH_R;
 
-	// Repeat ECHOES times the last report
-	if (echoes > 0)
-	{
-		memcpy(ReportData, &last_report, sizeof(USB_JoystickReport_Data_t));
-		echoes--;
-		return;
-	}
+	//	if (JoyStatus_LCL & JOY_UP)
+	//	  ReportData->Y = -100;
+	//	else if (JoyStatus_LCL & JOY_DOWN)
+	//	  ReportData->Y =  100;
+	//
+	//	if (JoyStatus_LCL & JOY_LEFT)
+	//	  ReportData->X = -100;
+	//	else if (JoyStatus_LCL & JOY_RIGHT)
+	//	  ReportData->X =  100;
+	//
+	//	if (JoyStatus_LCL & JOY_PRESS)
+	//	  ReportData->Button |= (1 << 1);
+	//
+	//	if (ButtonStatus_LCL & BUTTONS_BUTTON1)
+	//	  ReportData->Button |= (1 << 0);
 
-	// States and moves management
-	switch (state)
-	{
+	/* Check if the new report is different to the previous report */
+	// InputChanged = (uint8_t)(PrevJoyStatus ^ JoyStatus_LCL) | (uint8_t)(PrevButtonStatus ^ ButtonStatus_LCL);
 
-	case SYNC_CONTROLLER:
-		state = BREATHE;
-		break;
+	/* Save the current joystick status for later comparison */
+	// PrevJoyStatus    = JoyStatus_LCL;
+	// PrevButtonStatus = ButtonStatus_LCL;
 
-		// case SYNC_CONTROLLER:
-		// 	if (report_count > 550)
-		// 	{
-		// 		report_count = 0;
-		// 		state = SYNC_POSITION;
-		// 	}
-		// 	else if (report_count == 250 || report_count == 300 || report_count == 325)
-		// 	{
-		// 		ReportData->Button |= SWITCH_L | SWITCH_R;
-		// 	}
-		// 	else if (report_count == 350 || report_count == 375 || report_count == 400)
-		// 	{
-		// 		ReportData->Button |= SWITCH_A;
-		// 	}
-		// 	else
-		// 	{
-		// 		ReportData->Button = 0;
-		// 		ReportData->LX = STICK_CENTER;
-		// 		ReportData->LY = STICK_CENTER;
-		// 		ReportData->RX = STICK_CENTER;
-		// 		ReportData->RY = STICK_CENTER;
-		// 		ReportData->HAT = HAT_CENTER;
-		// 	}
-		// 	report_count++;
-		// 	break;
-
-	case SYNC_POSITION:
-		bufindex = 0;
-
-		ReportData->Button = 0;
-		ReportData->LX = STICK_CENTER;
-		ReportData->LY = STICK_CENTER;
-		ReportData->RX = STICK_CENTER;
-		ReportData->RY = STICK_CENTER;
-		ReportData->HAT = HAT_CENTER;
-
-		state = BREATHE;
-		break;
-
-	case BREATHE:
-		state = PROCESS;
-		break;
-
-	case PROCESS:
-
-		switch (step[bufindex].button)
-		{
-
-		case UP:
-			ReportData->LY = STICK_MIN;
-			break;
-
-		case LEFT:
-			ReportData->LX = STICK_MIN;
-			break;
-
-		case DOWN:
-			ReportData->LY = STICK_MAX;
-			break;
-
-		case RIGHT:
-			ReportData->LX = STICK_MAX;
-			break;
-
-		case A:
-			ReportData->Button |= SWITCH_A;
-			break;
-
-		case B:
-			ReportData->Button |= SWITCH_B;
-			break;
-
-		case R:
-			ReportData->Button |= SWITCH_R;
-			break;
-
-		case HOME:
-			ReportData->Button |= SWITCH_HOME;
-			break;
-
-		case TRIGGERS:
-			ReportData->Button |= SWITCH_L | SWITCH_R;
-			break;
-
-		default:
-			ReportData->LX = STICK_CENTER;
-			ReportData->LY = STICK_CENTER;
-			ReportData->RX = STICK_CENTER;
-			ReportData->RY = STICK_CENTER;
-			ReportData->HAT = HAT_CENTER;
-			break;
-		}
-
-		duration_count++;
-
-		if (duration_count > step[bufindex].duration)
-		{
-			bufindex++;
-			duration_count = 0;
-		}
-
-		if (bufindex > (int)(sizeof(step) / sizeof(step[0])) - 1)
-		{
-
-			// state = CLEANUP;
-
-			bufindex = 11;
-			duration_count = 0;
-
-			state = BREATHE;
-
-			ReportData->LX = STICK_CENTER;
-			ReportData->LY = STICK_CENTER;
-			ReportData->RX = STICK_CENTER;
-			ReportData->RY = STICK_CENTER;
-			ReportData->HAT = HAT_CENTER;
-
-			// state = DONE;
-			//				state = BREATHE;
-		}
-
-		break;
-
-	case CLEANUP:
-		state = DONE;
-		break;
-
-	case DONE:
-#ifdef ALERT_WHEN_DONE
-		portsval = ~portsval;
-		PORTD = portsval; // flash LED(s) and sound buzzer if attached
-		PORTB = portsval;
-		_delay_ms(250);
-#endif
-		return;
-	}
-
-	// // Inking
-	// if (state != SYNC_CONTROLLER && state != SYNC_POSITION)
-	// 	if (pgm_read_byte(&(image_data[(xpos / 8) + (ypos * 40)])) & 1 << (xpos % 8))
-	// 		ReportData->Button |= SWITCH_A;
-
-	// Prepare to echo this report
-	memcpy(&last_report, ReportData, sizeof(USB_JoystickReport_Data_t));
-	echoes = ECHOES;
+	/* Return whether the new report is different to the previous report or not */
+	return InputChanged;
 }
 
 /** Function to manage HID report generation and transmission to the host. */
@@ -440,18 +188,22 @@ void HID_Task(void)
 	/* Check to see if the host is ready for another packet */
 	if (Endpoint_IsINReady())
 	{
-		USB_JoystickReport_Data_t JoystickReportData;
+		// USB_JoystickReport_Data_t JoystickReportData;
 
 		/* Create the next HID report to send to the host */
-		GetNextReport(&JoystickReportData);
+		// GetNextReport(&JoystickReportData);
+		ReportData.Button |= SWITCH_L | SWITCH_R;
+		Endpoint_Write_Stream_LE(&ReportData, sizeof(ReportData), NULL);
+		ReportData.Button = 0;
+		Endpoint_Write_Stream_LE(&ReportData, sizeof(ReportData), NULL);
+		ReportData.Button |= SWITCH_L | SWITCH_R;
+		Endpoint_Write_Stream_LE(&ReportData, sizeof(ReportData), NULL);
 
 		/* Write Joystick Report Data */
-		Endpoint_Write_Stream_LE(&JoystickReportData, sizeof(JoystickReportData), NULL);
-
 		/* Finalize the stream transfer to send the last packet */
 		Endpoint_ClearIN();
 
 		/* Clear the report data afterwards */
-		memset(&JoystickReportData, 0, sizeof(JoystickReportData));
+		// memset(&JoystickReportData, 0, sizeof(JoystickReportData));
 	}
 }
