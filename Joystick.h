@@ -83,6 +83,40 @@
 #define STICK_CENTER 128
 #define STICK_MAX 255
 
+typedef struct
+{
+  uint16_t Button;
+  uint8_t HAT;
+  uint8_t LX; // Left  Stick X
+  uint8_t LY; // Left  Stick Y
+  uint8_t RX; // Right Stick X
+  uint8_t RY; // Right Stick Y
+  uint8_t VendorSpec;
+} USB_JoystickReport_Data_t;
+
+typedef enum
+{
+  UP,
+  DOWN,
+  LEFT,
+  RIGHT,
+  X,
+  Y,
+  A,
+  B,
+  L,
+  R,
+  HOME,
+  NOTHING,
+  TRIGGERS
+} Action;
+
+typedef struct
+{
+  Action button;
+	uint16_t duration;
+} command;
+
 typedef enum
 {
   SWITCH_Y = 0x01,
@@ -101,33 +135,6 @@ typedef enum
   SWITCH_CAPTURE = 0x2000,
 } JoystickButtons_t;
 
-typedef enum {
-	UP,
-	DOWN,
-	LEFT,
-	RIGHT,
-	X,
-	Y,
-	A,
-	B,
-	L,
-	R,
-	HOME,
-	NOTHING,
-	TRIGGERS
-} Buttons_t;
-
-typedef struct
-{
-  uint16_t Button;
-  uint8_t HAT;
-  uint8_t LX; // Left  Stick X
-  uint8_t LY; // Left  Stick Y
-  uint8_t RX; // Right Stick X
-  uint8_t RY; // Right Stick Y
-  uint8_t VendorSpec;
-} USB_JoystickReport_Data_t;
-
 /* Function Prototypes: */
 void SetupHardware(void);
 void HID_Task(void);
@@ -137,6 +144,6 @@ void EVENT_USB_Device_Disconnect(void);
 void EVENT_USB_Device_ConfigurationChanged(void);
 void EVENT_USB_Device_ControlRequest(void);
 
-bool GetNextReport(USB_JoystickReport_Data_t *const ReportData);
+void GetNextReport(USB_JoystickReport_Data_t* ReportData);
 
 #endif
