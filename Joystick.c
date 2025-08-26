@@ -8,7 +8,7 @@ uint16_t duration = 0;
 static const command step[] = {
 	{CLEAR, {.clear = {250}}},
 	{PRESS, {.press = {SWITCH_L | SWITCH_R}}},
-};
+	{PRESS, {.press = {SWITCH_X}}}};
 
 int main(void)
 {
@@ -52,7 +52,6 @@ void EVENT_USB_Device_ControlRequest(void) {}
 // Callback cleanup functions maybe?
 void GetNextReport(USB_JoystickReport_Data_t *ReportData)
 {
-
 	if (i > (int)(sizeof(step) / sizeof(step[0])) - 1)
 		return;
 
@@ -60,17 +59,18 @@ void GetNextReport(USB_JoystickReport_Data_t *ReportData)
 	{
 	case PRESS:
 		press_button(ReportData, step[i].press.button);
-		if (duration > 5) {
+		if (duration > 5)
+		{
+			release_button(ReportData, step[i].press.button);
 			duration = 0;
 			i++;
-			release_button(ReportData, step[i].press.button);
 		}
 		break;
 	case CLEAR:
 		memset(ReportData, 0, sizeof(USB_JoystickReport_Data_t));
 		center_sticks(ReportData);
-		duration++;
-		if(duration > step[i].clear.duration) {
+		if (duration > step[i].clear.duration)
+		{
 			duration = 0;
 			i++;
 		}
@@ -78,6 +78,7 @@ void GetNextReport(USB_JoystickReport_Data_t *ReportData)
 	default:
 		break;
 	}
+	duration++;
 }
 
 /** Function to manage HID report generation and transmission to the host. */
