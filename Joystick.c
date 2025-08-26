@@ -7,8 +7,9 @@ uint16_t i = 0;
 static const command step[] = {
 	CLEAR(250),
 	PRESS(SWITCH_L | SWITCH_R),
-	PRESS(SWITCH_X),
-	HOLD(SWITCH_HOME, 250)
+	SET_STICK(LSTICK, 128, 0),
+	NOTHING(250),
+	PRESS(SWITCH_LCLICK),
 };
 
 int main(void)
@@ -66,10 +67,17 @@ void GetNextReport(USB_JoystickReport_Data_t *ReportData)
 	case HOLD:
 		should_advance = hold_button(ReportData, step[i].hold.button, step[i].hold.duration, &duration);
 		break;
+	case SET_STICK:
+		set_stick_direction(ReportData, step[i].set_stick.stick, step[i].set_stick.direction);
+		should_advance = 1;
+		break;
 	case CLEAR:
 		memset(ReportData, 0, sizeof(USB_JoystickReport_Data_t));
 		center_sticks(ReportData);
 		should_advance = duration > step[i].clear.duration;
+		break;
+	case NOTHING:
+		should_advance = duration > step[i].nothing.duration;
 		break;
 	default:
 		break;

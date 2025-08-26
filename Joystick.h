@@ -16,20 +16,6 @@
 
 #include "Descriptors.h"
 
-#define HAT_TOP 0x00
-#define HAT_TOP_RIGHT 0x01
-#define HAT_RIGHT 0x02
-#define HAT_BOTTOM_RIGHT 0x03
-#define HAT_BOTTOM 0x04
-#define HAT_BOTTOM_LEFT 0x05
-#define HAT_LEFT 0x06
-#define HAT_TOP_LEFT 0x07
-#define HAT_CENTER 0x08
-
-#define STICK_MIN 0
-#define STICK_CENTER 128
-#define STICK_MAX 255
-
 #define CLEAR(duration)     \
   {                         \
     CLEAR,                  \
@@ -52,17 +38,21 @@
                 duration }     \
     }                          \
   }
-
-typedef struct
-{
-  uint16_t Button;
-  uint8_t HAT;
-  uint8_t LX; // Left  Stick X
-  uint8_t LY; // Left  Stick Y
-  uint8_t RX; // Right Stick X
-  uint8_t RY; // Right Stick Y
-  uint8_t VendorSpec;
-} USB_JoystickReport_Data_t;
+#define SET_STICK(stick, x, y) \
+  {                            \
+    SET_STICK,                 \
+    {                          \
+      .set_stick = { stick,    \
+                     {x, y} }  \
+    }                          \
+  }
+#define NOTHING(duration)     \
+  {                           \
+    NOTHING,                  \
+    {                         \
+      .nothing = { duration } \
+    }                         \
+  }
 
 typedef enum
 {
@@ -86,8 +76,32 @@ typedef enum
 {
   HOLD,
   PRESS,
-  CLEAR
+  CLEAR,
+  SET_STICK,
+  NOTHING
 } Action;
+
+typedef enum
+{
+  LSTICK,
+  RSTICK
+} StickType;
+typedef struct
+{
+  uint16_t Button;
+  uint8_t HAT;
+  uint8_t LX; // Left  Stick X
+  uint8_t LY; // Left  Stick Y
+  uint8_t RX; // Right Stick X
+  uint8_t RY; // Right Stick Y
+  uint8_t VendorSpec;
+} USB_JoystickReport_Data_t;
+
+typedef struct
+{
+  uint8_t x;
+  uint8_t y;
+} StickPoint;
 
 typedef struct
 {
@@ -107,6 +121,15 @@ typedef struct
     {
       uint16_t duration;
     } clear;
+    struct
+    {
+      StickType stick;
+      StickPoint direction;
+    } set_stick;
+    struct
+    {
+      uint16_t duration;
+    } nothing;
   };
 } command;
 

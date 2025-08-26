@@ -9,6 +9,8 @@ uint16_t press_button(USB_JoystickReport_Data_t *ReportData, Buttons_t button, u
 
 uint16_t hold_button(USB_JoystickReport_Data_t *ReportData, Buttons_t button, uint16_t hold_duration, uint16_t *_duration);
 
+void set_stick_direction(USB_JoystickReport_Data_t *ReportData, StickType stick, StickPoint direction);
+
 void center_sticks(USB_JoystickReport_Data_t *ReportData);
 
 #endif
