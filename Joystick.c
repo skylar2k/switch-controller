@@ -1,16 +1,14 @@
 #include "Joystick.h"
+#include "actions.h"
 
 // Current step in the script.
 uint16_t i = 0;
 uint16_t duration = 0;
 
 static const command step[] = {
-	{NOTHING, 250},
-	{TRIGGERS, 5},
-	{NOTHING, 150},
-
-	{X, 5},
-	{NOTHING, 150}};
+	{CLEAR, {.clear = {250}}},
+	{PRESS, {.press = {SWITCH_L | SWITCH_R}}},
+};
 
 int main(void)
 {
@@ -47,56 +45,38 @@ void EVENT_USB_Device_ConfigurationChanged(void)
 
 	/* Setup HID Report Endpoint */
 	ConfigSuccess &= Endpoint_ConfigureEndpoint(JOYSTICK_EPADDR, EP_TYPE_INTERRUPT, JOYSTICK_EPSIZE, 1);
-
-	/* Indicate endpoint configuration success or failure */
-	// LEDs_SetAllLEDs(ConfigSuccess ? LEDMASK_USB_READY : LEDMASK_USB_ERROR);
 }
 
 void EVENT_USB_Device_ControlRequest(void) {}
 
+// Callback cleanup functions maybe?
 void GetNextReport(USB_JoystickReport_Data_t *ReportData)
 {
-	memset(ReportData, 0, sizeof(USB_JoystickReport_Data_t));
-	ReportData->LX = STICK_CENTER;
-	ReportData->LY = STICK_CENTER;
-	ReportData->RX = STICK_CENTER;
-	ReportData->RY = STICK_CENTER;
-	ReportData->HAT = HAT_CENTER;
 
-	switch (step[i].button)
+	if (i > (int)(sizeof(step) / sizeof(step[0])) - 1)
+		return;
+
+	switch (step[i].action)
 	{
-	case TRIGGERS:
-		ReportData->Button |= SWITCH_L | SWITCH_R;
+	case PRESS:
+		press_button(ReportData, step[i].press.button);
+		if (duration > 5) {
+			duration = 0;
+			i++;
+			release_button(ReportData, step[i].press.button);
+		}
 		break;
-	case A:
-		ReportData->Button |= SWITCH_A;
-		break;
-	case X:
-		ReportData->Button |= SWITCH_X;
+	case CLEAR:
+		memset(ReportData, 0, sizeof(USB_JoystickReport_Data_t));
+		center_sticks(ReportData);
+		duration++;
+		if(duration > step[i].clear.duration) {
+			duration = 0;
+			i++;
+		}
 		break;
 	default:
-		ReportData->LX = STICK_CENTER;
-		ReportData->LY = STICK_CENTER;
-		ReportData->RX = STICK_CENTER;
-		ReportData->RY = STICK_CENTER;
-		ReportData->HAT = HAT_CENTER;
 		break;
-	}
-	duration++;
-	if (duration > step[i].duration)
-	{
-		i++;
-		duration = 0;
-	}
-	if (i > (int)(sizeof(step) / sizeof(step[0])) - 1)
-	{
-		i = 3;
-		duration = 0;
-		ReportData->LX = STICK_CENTER;
-		ReportData->LY = STICK_CENTER;
-		ReportData->RX = STICK_CENTER;
-		ReportData->RY = STICK_CENTER;
-		ReportData->HAT = HAT_CENTER;
 	}
 }
 
@@ -113,7 +93,7 @@ void HID_Task(void)
 	/* Check to see if the host is ready for another packet */
 	if (Endpoint_IsINReady())
 	{
-		USB_JoystickReport_Data_t ReportData;
+		static USB_JoystickReport_Data_t ReportData;
 		GetNextReport(&ReportData);
 		/* Write Joystick Report Data */
 		while (Endpoint_Write_Stream_LE(&ReportData, sizeof(ReportData), NULL) != ENDPOINT_RWSTREAM_NoError)
