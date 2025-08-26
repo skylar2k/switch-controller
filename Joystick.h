@@ -30,6 +30,29 @@
 #define STICK_CENTER 128
 #define STICK_MAX 255
 
+#define CLEAR(duration)     \
+  {                         \
+    CLEAR,                  \
+    {                       \
+      .clear = { duration } \
+    }                       \
+  }
+#define PRESS(button)     \
+  {                       \
+    PRESS,                \
+    {                     \
+      .press = { button } \
+    }                     \
+  }
+#define HOLD(button, duration) \
+  {                            \
+    HOLD,                      \
+    {                          \
+      .hold = { button,        \
+                duration }     \
+    }                          \
+  }
+
 typedef struct
 {
   uint16_t Button;

@@ -3,12 +3,13 @@
 
 // Current step in the script.
 uint16_t i = 0;
-uint16_t duration = 0;
 
 static const command step[] = {
-	{CLEAR, {.clear = {250}}},
-	{PRESS, {.press = {SWITCH_L | SWITCH_R}}},
-	{PRESS, {.press = {SWITCH_X}}}};
+	CLEAR(250),
+	PRESS(SWITCH_L | SWITCH_R),
+	PRESS(SWITCH_X),
+	HOLD(SWITCH_HOME, 250)
+};
 
 int main(void)
 {
@@ -52,33 +53,33 @@ void EVENT_USB_Device_ControlRequest(void) {}
 // Callback cleanup functions maybe?
 void GetNextReport(USB_JoystickReport_Data_t *ReportData)
 {
+	static uint16_t duration = 0;
+	uint16_t should_advance = 0;
 	if (i > (int)(sizeof(step) / sizeof(step[0])) - 1)
 		return;
 
 	switch (step[i].action)
 	{
 	case PRESS:
-		press_button(ReportData, step[i].press.button);
-		if (duration > 5)
-		{
-			release_button(ReportData, step[i].press.button);
-			duration = 0;
-			i++;
-		}
+		should_advance = press_button(ReportData, step[i].press.button, &duration);
+		break;
+	case HOLD:
+		should_advance = hold_button(ReportData, step[i].hold.button, step[i].hold.duration, &duration);
 		break;
 	case CLEAR:
 		memset(ReportData, 0, sizeof(USB_JoystickReport_Data_t));
 		center_sticks(ReportData);
-		if (duration > step[i].clear.duration)
-		{
-			duration = 0;
-			i++;
-		}
+		should_advance = duration > step[i].clear.duration;
 		break;
 	default:
 		break;
 	}
 	duration++;
+	if (should_advance)
+	{
+		duration = 0;
+		i++;
+	}
 }
 
 /** Function to manage HID report generation and transmission to the host. */
