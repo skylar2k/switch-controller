@@ -12,13 +12,22 @@ int main (void)
     GlobalInterruptEnable ();
 
     // Create and zero our report struct, and pass it
-    // report.lstick = (struct stick_axis){ 128, 128 };
-    // report.rstick = (struct stick_axis){ 128, 128 };
+    struct report_data report;
+    memset (&report, 0, sizeof (struct report_data));
+    report.hat    = HAT_CENTER;
+    report.lstick = (struct stick_axis){ 128, 128 };
+    report.rstick = (struct stick_axis){ 128, 128 };
+
+    // Enable LED
     DDRD |= (1 << PD5);
+    // Set LED on
+    // PORTD |= (1 << PD5);
+    // Set LED off
+    // PORTD &= ~(1 << PD5);
 
     for (;;)
         {
-            HID_Task ();
+            HID_Task (&report);
             USB_USBTask ();
         }
 }
@@ -62,7 +71,6 @@ void get_next_report (struct report_data *report)
         {
             duration       = 0;
             should_advance = false;
-
             char line[128];
             int i = 0;
             // Read a line until newline or end of script
@@ -92,7 +100,11 @@ void get_next_report (struct report_data *report)
                 report->buttons &= ~cmd.press.buttons;
             break;
         case CMD_HOLD:
-            // Not implemented yet
+            report->buttons |= cmd.hold.buttons;
+            should_advance = duration > cmd.hold.duration;
+            // Release buttons after hold
+            if (should_advance)
+                report->buttons &= ~cmd.hold.buttons;
             break;
         default: break;
         }
@@ -100,7 +112,7 @@ void get_next_report (struct report_data *report)
 }
 
 /** Function to manage HID report generation and transmission to the host. */
-void HID_Task (void)
+void HID_Task (struct report_data *report)
 {
     /* Device must be connected and configured for the task to run */
     if (USB_DeviceState != DEVICE_STATE_Configured)
@@ -112,16 +124,10 @@ void HID_Task (void)
     /* Check to see if the host is ready for another packet */
     if (Endpoint_IsINReady ())
         {
-            static struct report_data report;
             // center_sticks (&report);
-            report.hat = HAT_CENTER;
-            report.lx  = 128;
-            report.ly  = 128;
-            report.rx  = 128;
-            report.ry  = 128;
-            get_next_report (&report);
+            get_next_report (report);
             /* Write Joystick Report Data */
-            while (Endpoint_Write_Stream_LE (&report, sizeof (report), NULL)
+            while (Endpoint_Write_Stream_LE (report, sizeof (*report), NULL)
                    != ENDPOINT_RWSTREAM_NoError)
                 ;
 

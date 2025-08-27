@@ -1,7 +1,8 @@
 #include "parser.h"
-#include <avr/io.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include <avr/io.h>
 #include <util/delay.h>
 
 int parse_button (const char *token, enum button *btn)
@@ -78,13 +79,30 @@ int parse_command (const char *line, struct command *cmd)
                 }
             cmd->press.buttons = btn;
         }
+    if (strcmp (token, "HOLD") == 0)
+        {
+            cmd->type = CMD_HOLD;
+            token     = strtok (0, " "); // Duration
+            if (!token)
+                return -1;
+            cmd->hold.duration = (uint16_t)atoi (token);
+
+            token = strtok (0, " "); // Buttons
+            if (!token)
+                return -1;
+
+            enum button btn = BT_NONE;
+            char *btn_token = strtok (token, "|");
+            while (btn_token)
+                {
+                    enum button single_btn;
+                    if (parse_button (btn_token, &single_btn) != 0)
+                        return -1; // Unknown button
+                    btn |= single_btn;
+                    btn_token = strtok (0, "|");
+                }
+            cmd->hold.buttons = btn;
+        }
 
     return 0; // Success
-}
-
-void flash (void)
-{
-    PORTD |= (1 << PD5);
-    _delay_ms (100);
-    PORTD &= ~(1 << PD5);
 }

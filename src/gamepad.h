@@ -94,18 +94,14 @@ struct report_data
 {
     enum button buttons : 16;
     enum hat_direction hat : 8;
-    uint8_t ly;
-    uint8_t lx;
-    uint8_t ry;
-    uint8_t rx;
-    // struct stick_axis lstick;
-    // struct stick_axis rstick;
+    struct stick_axis lstick;
+    struct stick_axis rstick;
     uint8_t _; // Vendor spec, not used
 };
 
 /* Function Prototypes: */
 void SetupHardware (void);
-void HID_Task (void);
+void HID_Task (struct report_data *report);
 void get_next_report (struct report_data *report);
 
 void EVENT_USB_Device_Connect (void);

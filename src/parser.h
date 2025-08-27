@@ -25,8 +25,8 @@ struct command
         } press;
         struct
         {
-            enum button buttons; // bitmask of buttons to hold
             uint16_t duration;   // in milliseconds
+            enum button buttons; // bitmask of buttons to hold
         } hold;
     };
 };
