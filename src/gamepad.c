@@ -1,19 +1,10 @@
 #include "gamepad.h"
 #include "descriptors.h"
 #include "parser.h"
+#include "script.h"
 
-// Current step in the script.
-// uint16_t i = 0;
-
-// static const command step[] = {
-//     CLEAR (250),   PRESS (SWITCH_L | SWITCH_R), SET_STICK (LSTICK, 128, 0),
-//     NOTHING (250), PRESS (SWITCH_LCLICK),
-// };
-
-unsigned char scripts_test_script[]
-  = { 0x57, 0x41, 0x49, 0x54, 0x20, 0x32, 0x35, 0x30, 0x0d, 0x0a,
-      0x50, 0x52, 0x45, 0x53, 0x53, 0x20, 0x4c, 0x7c, 0x52 };
-unsigned int scripts_test_script_len = 19;
+unsigned char script[];
+unsigned int script_len;
 
 int main (void)
 {
@@ -67,7 +58,7 @@ void get_next_report (struct report_data *report)
     static bool should_advance = true;
     static struct command cmd;
 
-    if (should_advance && counter < scripts_test_script_len)
+    if (should_advance && counter < script_len)
         {
             duration       = 0;
             should_advance = false;
@@ -75,18 +66,14 @@ void get_next_report (struct report_data *report)
             char line[128];
             int i = 0;
             // Read a line until newline or end of script
-            while (counter < scripts_test_script_len
-                   && scripts_test_script[counter] != 0x0a
+            while (counter < script_len && script[counter] != 0x0a
                    && i < (int)(sizeof (line) - 1))
-                {
-                    line[i++] = scripts_test_script[counter++];
-                }
+                line[i++] = script[counter++];
             line[i] = '\0';
             if (i > 0 && line[i - 1] == 0x0d)
                 line[i - 1] = '\0';
             // Skip newline character
-            if (counter < scripts_test_script_len
-                && scripts_test_script[counter] == 0x0a)
+            if (counter < script_len && script[counter] == 0x0a)
                 counter++;
             // Parse the command
             if (parse_command (line, &cmd) != 0)
@@ -102,14 +89,7 @@ void get_next_report (struct report_data *report)
             should_advance = duration > 10; // Press for 10ms
             // Release buttons after press
             if (should_advance)
-                {
-
-                    PORTD |= (1 << PD5);
-                    _delay_ms (500);
-                    PORTD &= ~(1 << PD5);
-                    _delay_ms (500);
-                    report->buttons &= ~cmd.press.buttons;
-                }
+                report->buttons &= ~cmd.press.buttons;
             break;
         case CMD_HOLD:
             // Not implemented yet
@@ -118,46 +98,6 @@ void get_next_report (struct report_data *report)
         }
     duration++;
 }
-
-//    static uint16_t duration = 0;
-//    uint16_t should_advance  = 0;
-//    if (i > (int)(sizeof (step) / sizeof (step[0])) - 1)
-//        return;
-//
-//    switch (step[i].action)
-//        {
-//        case PRESS:
-//            should_advance
-//              = press_button (ReportData, step[i].press.button,
-//              &duration);
-//            break;
-//        case HOLD:
-//            should_advance = hold_button (ReportData,
-//            step[i].hold.button,
-//                                          step[i].hold.duration,
-//                                          &duration);
-//            break;
-//        case SET_STICK:
-//            set_stick_direction (ReportData, step[i].set_stick.stick,
-//                                 step[i].set_stick.direction);
-//            should_advance = 1;
-//            break;
-//        case CLEAR:
-//            memset (ReportData, 0, sizeof (USB_JoystickReport_Data_t));
-//            center_sticks (ReportData);
-//            should_advance = duration > step[i].clear.duration;
-//            break;
-//        case NOTHING:
-//            should_advance = duration > step[i].nothing.duration;
-//            break;
-//        default: break;
-//        }
-//    duration++;
-//    if (should_advance)
-//        {
-//            duration = 0;
-//            i++;
-//        }
 
 /** Function to manage HID report generation and transmission to the host. */
 void HID_Task (void)

@@ -31,3 +31,10 @@ include $(DMBS_PATH)/gcc.mk
 include $(DMBS_PATH)/hid.mk
 include $(DMBS_PATH)/avrdude.mk
 include $(DMBS_PATH)/atprogram.mk
+
+test_script: scripts/test.script
+	@echo xxd $@
+	@echo "unsigned char script[] = { " > src/script.h
+	@cat $^ | xxd -i - >> src/script.h
+	@echo "};" >> src/script.h
+	@echo "unsigned int script_len = `wc -c $^ | awk 'END{print $$1}'`;" >> src/script.h

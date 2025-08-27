@@ -63,3 +63,4 @@ avrdude.conf
 *.eep
 *.sym
 *.lss
+src/script.h
