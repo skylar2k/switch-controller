@@ -3,10 +3,13 @@ ARCH         = AVR8
 BOARD		 = USBKEY
 F_CPU        = 16000000
 F_USB        = $(F_CPU)
+AVRDUDE_PROGRAMMER = avr109
+AVRDUDE_PORT = usb:2341:0037
 OPTIMIZATION = s
-TARGET       = Joystick
-SRC          = $(TARGET).c Descriptors.c actions.c $(LUFA_SRC_USB)
-LUFA_PATH    = lufa/LUFA
+TARGET       = src/gamepad
+SRCDIR := src
+SRC = $(wildcard $(SRCDIR)/*.c) $(LUFA_SRC_USB)
+LUFA_PATH    = ./lufa/LUFA
 CC_FLAGS     = -DUSE_LUFA_CONFIG_HEADER -IConfig/
 LD_FLAGS     =
 
