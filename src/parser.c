@@ -7,38 +7,31 @@
 
 int parse_button (const char *token, enum button *btn)
 {
-    if (strcmp (token, "A") == 0)
-        *btn = BT_A;
-    else if (strcmp (token, "B") == 0)
-        *btn = BT_B;
-    else if (strcmp (token, "X") == 0)
-        *btn = BT_X;
-    else if (strcmp (token, "Y") == 0)
-        *btn = BT_Y;
-    else if (strcmp (token, "L") == 0)
-        *btn = BT_L;
-    else if (strcmp (token, "R") == 0)
-        *btn = BT_R;
-    else if (strcmp (token, "ZL") == 0)
-        *btn = BT_ZL;
-    else if (strcmp (token, "ZR") == 0)
-        *btn = BT_ZR;
-    else if (strcmp (token, "MINUS") == 0)
-        *btn = BT_MINUS;
-    else if (strcmp (token, "PLUS") == 0)
-        *btn = BT_PLUS;
-    else if (strcmp (token, "LCLICK") == 0)
-        *btn = BT_LCLICK;
-    else if (strcmp (token, "RCLICK") == 0)
-        *btn = BT_RCLICK;
-    else if (strcmp (token, "HOME") == 0)
-        *btn = BT_HOME;
-    else if (strcmp (token, "CAPTURE") == 0)
-        *btn = BT_CAPTURE;
-    else
-        return -1; // Unknown button
-
-    return 0; // Success
+    struct
+    {
+        const char *name;
+        enum button value;
+    } button_map[] = {
+        { "A", BT_A },           { "B", BT_B },
+        { "X", BT_X },           { "Y", BT_Y },
+        { "L", BT_L },           { "R", BT_R },
+        { "ZL", BT_ZL },         { "ZR", BT_ZR },
+        { "HOME", BT_HOME },     { "PLUS", BT_PLUS },
+        { "MINUS", BT_MINUS },   { "LCLICK", BT_LCLICK },
+        { "RCLICK", BT_RCLICK }, { "CAPTURE", BT_CAPTURE },
+    };
+    size_t token_len = strlen (token);
+    for (size_t i = 0; i < sizeof (button_map) / sizeof (button_map[0]); ++i)
+        {
+            size_t name_len = strlen (button_map[i].name);
+            if (token_len == name_len
+                && memcmp (token, button_map[i].name, name_len) == 0)
+                {
+                    *btn = button_map[i].value;
+                    return 0; // Success
+                }
+        }
+    return -1; // Unknown button
 }
 
 int parse_command (const char *line, struct command *cmd)
@@ -103,6 +96,27 @@ int parse_command (const char *line, struct command *cmd)
                 }
             cmd->hold.buttons = btn;
         }
+    if (strcmp (token, "STICK") == 0)
+        {
+            cmd->type = CMD_SET_STICK;
+            token     = strtok (0, " "); // Stick
+            if (!token)
+                return -1;
+            if (strcmp (token, "LEFT") == 0)
+                cmd->set_stick.stick = STICK_LEFT;
+            else if (strcmp (token, "RIGHT") == 0)
+                cmd->set_stick.stick = STICK_RIGHT;
+            else
+                return -1; // Unknown stick
 
+            token = strtok (0, " "); // X
+            if (!token)
+                return -1;
+            cmd->set_stick.axis.x = (int8_t)atoi (token);
+            token                 = strtok (0, " "); // Y
+            if (!token)
+                return -1;
+            cmd->set_stick.axis.y = (int8_t)atoi (token);
+        }
     return 0; // Success
 }
