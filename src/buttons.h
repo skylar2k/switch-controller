@@ -35,6 +35,12 @@ enum hat_direction
     HAT_CENTER       = 0x08
 };
 
+enum stick
+{
+    STICK_LEFT,
+    STICK_RIGHT
+};
+
 struct stick_axis
 {
     uint8_t x;

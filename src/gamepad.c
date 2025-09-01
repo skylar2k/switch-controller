@@ -106,6 +106,13 @@ void get_next_report (struct report_data *report)
             if (should_advance)
                 report->buttons &= ~cmd.hold.buttons;
             break;
+        case CMD_SET_STICK:
+            if (cmd.set_stick.stick == STICK_LEFT)
+                report->lstick = cmd.set_stick.axis;
+            else if (cmd.set_stick.stick == STICK_RIGHT)
+                report->rstick = cmd.set_stick.axis;
+            should_advance = true;
+            break;
         default: break;
         }
     duration++;
@@ -133,7 +140,5 @@ void HID_Task (struct report_data *report)
 
             /* Finalize the stream transfer to send the last packet */
             Endpoint_ClearIN ();
-            /* Clear the report data afterwards */
-            // memset(&ReportData, 0, sizeof(ReportData));
         }
 }
